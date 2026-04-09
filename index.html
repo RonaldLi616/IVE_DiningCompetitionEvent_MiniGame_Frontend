@@ -16,14 +16,12 @@
             font-family: -apple-system, sans-serif; overflow: hidden;
         }
 
-        /* 核心容器：確保永遠撐滿視窗 */
         #game-container {
             width: 100vw; height: 100vh;
             display: flex; align-items: center; justify-content: center;
             overflow: hidden; position: relative;
         }
 
-        /* 處理 iPhone 直向時的強制旋轉 */
         @media screen and (orientation: portrait) {
             #game-container {
                 width: 100vh; height: 100vw;
@@ -33,7 +31,6 @@
             }
         }
 
-        /* 設定介面 */
         #setup-ui { text-align: center; width: 85%; max-width: 400px; z-index: 20; }
         input[type="text"] {
             width: 100%; padding: 15px; margin: 15px 0;
@@ -44,25 +41,18 @@
         .color-btn.active { border-color: white; transform: scale(1.2); }
         .btn-start { background: var(--accent); color: white; border: none; padding: 15px 50px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; }
 
-        /* 控制介面：強制居中 */
         #control-ui { 
             display: none; 
             width: 100%; height: 100%;
             position: absolute; top: 0; left: 0;
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; /* 讓內容物在中心聚集 */
-            gap: 20px; /* 名稱與方向盤之間的間距 */
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 20px;
         }
 
-        /* 方向盤外層：使用 vmin 確保在橫向時不會爆框 */
         #wheel-wrapper {
             position: relative;
-            width: 65vmin; 
-            height: 65vmin;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 65vmin; height: 65vmin;
+            display: flex; align-items: center; justify-content: center;
         }
 
         #steering-wheel {
@@ -70,43 +60,27 @@
             object-fit: contain;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
             transition: transform 0.1s ease-out;
-            will-change: transform;
         }
 
-        /* 角度數字：絕對置中於方向盤 */
         #angle-display {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 3.5rem; 
-            font-weight: bold;
-            font-family: monospace;
-            color: white;
-            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9);
-            z-index: 10;
+            font-size: 3.5rem; font-weight: bold; font-family: monospace;
+            color: white; text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9);
+            z-index: 10; pointer-events: none;
         }
 
-        /* 玩家名稱樣式 */
         #name-tag {
-            display: block; /* 恢復顯示 */
-            font-size: 1.2rem;
-            font-weight: bold;
-            padding: 8px 25px;
-            border-radius: 30px;
-            background: rgba(0, 0, 0, 0.5); /* 半透明黑 */
-            border: 2px solid currentColor; /* 自動對應玩家選擇的顏色 */
-            color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            flex-shrink: 0;
+            font-size: 1.2rem; font-weight: bold;
+            padding: 8px 25px; border-radius: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid currentColor;
+            color: white; flex-shrink: 0;
         }
 
-        /* 隱藏不需要的元素 */
-        #speed-label { display: none; }
-
-        /* 警示效果 */
         @keyframes warning-flash { 0%, 100% { background-color: #121212; } 50% { background-color: #600000; } }
         .warning-active { animation: warning-flash 0.5s infinite; }
-        
         .extreme-turn #steering-wheel { animation: shake 0.1s infinite; }
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(var(--current-deg)); }
@@ -132,12 +106,10 @@
 
         <div id="control-ui">
             <div id="name-tag">玩家名稱</div>
-
             <div id="wheel-wrapper">
                 <img id="steering-wheel" src="SteeringWheel.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2062/2062128.png'">
                 <div id="angle-display">0°</div>
             </div>
-            <div id="speed-label" style="display:none;">STOP</div>
         </div>
     </div>
 
@@ -146,7 +118,17 @@
         const socket = io(RENDER_URL);
         let selectedColor = "Red", playerName = "", lastSteering = 0;
 
-        // 顏色選擇
+        // --- 新增：補上缺少的顏色轉換函數 ---
+        function getHexColor(colorName) {
+            const colors = { 
+                Red: '#ff4757', 
+                Blue: '#1e90ff', 
+                Green: '#2ed573', 
+                Yellow: '#ffa502' 
+            };
+            return colors[colorName] || '#ffffff';
+        }
+
         document.querySelectorAll('.color-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
@@ -155,22 +137,30 @@
             });
         });
 
-        // 啟動
         document.getElementById('start-btn').addEventListener('click', async () => {
             playerName = document.getElementById('player-name').value.trim();
             if (!playerName) return alert("請輸入名稱！");
 
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                await DeviceOrientationEvent.requestPermission();
+            // iOS 權限請求優化
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission !== 'granted') {
+                        alert("需授權動作感測器才能遊玩");
+                        return;
+                    }
+                } catch (e) {
+                    console.error("權限請求出錯:", e);
+                }
             }
 
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('control-ui').style.display = 'flex'; 
             
-            // 更新名稱標籤
             const nameTag = document.getElementById('name-tag');
             nameTag.innerText = playerName;
-            nameTag.style.color = getHexColor(selectedColor); // 設定文字顏色與邊框顏色
+            nameTag.style.color = getHexColor(selectedColor); 
+
             socket.emit('player-join', { name: playerName, color: selectedColor });
             initTracker();
         });
@@ -178,8 +168,9 @@
         function initTracker() {
             window.addEventListener('deviceorientation', (event) => {
                 const isPortrait = window.innerHeight > window.innerWidth;
+                // 注意：iPhone 的橫向座標修正邏輯
                 let rawAngle = isPortrait ? event.gamma : event.beta;
-                let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
+                let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle || 0)));
 
                 if (Math.abs(clampedAngle - lastSteering) > 50) clampedAngle = lastSteering;
                 lastSteering = clampedAngle;
@@ -192,7 +183,6 @@
                 let steering = Math.abs(clampedAngle) < 3 ? 0 : clampedAngle;
                 const absA = Math.abs(steering);
 
-                // 警告與震動邏輯
                 if (absA >= 40) {
                     container.classList.add('warning-active');
                     wheelWrapper.classList.add('extreme-turn');
@@ -203,11 +193,9 @@
                     wheelWrapper.classList.remove('extreme-turn');
                 }
 
-                // 旋轉視覺更新
                 wheel.style.transform = `rotate(${clampedAngle * 1.2}deg)`;
                 display.innerText = `${steering}°`;
 
-                // 發送數據
                 socket.emit('steering-data', {
                     name: playerName,
                     color: selectedColor,
