@@ -43,36 +43,88 @@
                 margin-left: -50vh;
             }
         }
+
+        /* 設定介面樣式 */
+        #setup-ui {
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .color-options {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .color-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .color-btn.active {
+            border-color: white;
+            transform: scale(1.2);
+        }
+
+        /* 控制介面樣式 (預設隱藏) */
+        #control-ui {
+            display: none;
+            text-align: center;
+        }
         
-        #status { font-size: 1rem; margin-bottom: 20px; color: #888; }
-        #data-display { font-size: 4rem; font-weight: bold; font-family: monospace; }
-        
-        #start-btn {
+        #data-display { font-size: 5rem; font-weight: bold; }
+
+        .btn-primary {
             padding: 15px 40px;
             font-size: 1.2rem;
-            background: #007bff;
+            background: #28a745;
             color: white;
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
         }
 
-        .instruction {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #555;
-        }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        <div id="status">準備連線...</div>
-        <div id="data-display">0°</div>
-        <br>
-        <button id="start-btn">啟動控制器</button>
-        <p class="instruction">若數字無跳動，請點擊按鈕授權感測器</p>
+        
+        <div id="setup-ui">
+            <h2>玩家設定</h2>
+            <input type="text" id="player-name" placeholder="輸入你的名稱..." maxlength="10">
+            
+            <p>選擇車輛顏色：</p>
+            <div class="color-options">
+                <div class="color-btn active" style="background: #ff4444;" data-color="red"></div>
+                <div class="color-btn" style="background: #4444ff;" data-color="blue"></div>
+                <div class="color-btn" style="background: #44ff44;" data-color="green"></div>
+                <div class="color-btn" style="background: #ffff44;" data-color="yellow"></div>
+            </div>
+
+            <button id="start-btn" class="btn-primary">啟動並連線</button>
+        </div>
+
+        <div id="control-ui">
+            <div id="player-tag" style="font-size: 1.2rem; color: #aaa;"></div>
+            <div id="data-display">0°</div>
+            <p id="status">正在傳輸數據...</p>
+        </div>
+
     </div>
 
     <script>
@@ -80,74 +132,66 @@
         const RENDER_URL = "https://ive-diningcompetitionevent-minigame.onrender.com"; 
         const socket = io(RENDER_URL);
 
-        const statusText = document.getElementById('status');
-        const dataText = document.getElementById('data-display');
+        let selectedColor = "red";
+        let playerName = "";
+
+        // 顏色選擇邏輯
+        const colorBtns = document.querySelectorAll('.color-btn');
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedColor = btn.getAttribute('data-color');
+            });
+        });
+
+        // 啟動按鈕邏輯
         const startBtn = document.getElementById('start-btn');
-
-        // Socket 連線狀態監控
-        socket.on('connect', () => {
-            statusText.innerText = "已連線至伺服器";
-            statusText.style.color = "#00ff00";
-        });
-
-        socket.on('disconnect', () => {
-            statusText.innerText = "連線中斷";
-            statusText.style.color = "#ff4444";
-        });
-
-        // 2. 處理感測器權限與邏輯
         startBtn.addEventListener('click', async () => {
-            // 1. 請求 iOS 感測器權限
+            playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                alert("請輸入名稱！");
+                return;
+            }
+
+            // iOS 權限請求
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') {
-                        initTracker();
-                    } else {
-                        alert("存取被拒絕，請刷新頁面再試");
-                    }
-                } catch (error) {
-                    console.error(error);
-                }
-            } else {
-                initTracker();
-            }
-            
-            // 2. 嘗試進入全螢幕 (Android 用)
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(() => {});
+                    if (permission !== 'granted') return;
+                } catch (e) { console.error(e); }
             }
 
-            startBtn.style.display = 'none';
+            // 切換 UI
+            document.getElementById('setup-ui').style.display = 'none';
+            document.getElementById('control-ui').style.display = 'block';
+            document.getElementById('player-tag').innerText = `玩家：${playerName}`;
+            document.getElementById('player-tag').style.color = selectedColor;
+
+            // 發送初始加入資料給伺服器
+            socket.emit('player-join', {
+                name: playerName,
+                color: selectedColor
+            });
+
+            initTracker();
         });
 
         function initTracker() {
             window.addEventListener('deviceorientation', (event) => {
-                let steering = 0;
-                
-                // 檢查目前手機是否物理上處於直向 (Portrait)
                 const isPortrait = window.innerHeight > window.innerWidth;
+                let steering = isPortrait ? Math.round(event.gamma) : Math.round(event.beta);
 
-                if (isPortrait) {
-                    // 【重要】當手機直拿但畫面被旋轉 90 度時：
-                    // 手機的左右傾斜會變成 event.gamma
-                    steering = Math.round(event.gamma);
-                } else {
-                    // 當手機橫拿時：
-                    // 手機的左右傾斜會變成 event.beta
-                    steering = Math.round(event.beta);
-                }
-
-                // 數值平滑處理 (限制在 -90 到 90)
                 if (steering > 90) steering = 90;
                 if (steering < -90) steering = -90;
 
-                dataText.innerText = `${steering}°`;
+                document.getElementById('data-display').innerText = `${steering}°`;
 
-                // 發送數據
+                // 發送轉向數據 (包含玩家身分，方便 Unity 識別)
                 socket.emit('steering-data', {
-                    angle: steering,
-                    timestamp: Date.now()
+                    name: playerName,
+                    color: selectedColor,
+                    angle: steering
                 });
             });
         }
