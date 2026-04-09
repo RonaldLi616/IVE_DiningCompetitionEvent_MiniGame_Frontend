@@ -166,6 +166,7 @@
         });
 
         function initTracker() {
+            let lastSendTime = 0;
             window.addEventListener('deviceorientation', (event) => {
                 const isPortrait = window.innerHeight > window.innerWidth;
                 // 注意：iPhone 的橫向座標修正邏輯
@@ -195,6 +196,11 @@
 
                 wheel.style.transform = `rotate(${clampedAngle * 1.2}deg)`;
                 display.innerText = `${steering}°`;
+
+                // 節流發送資料，避免過於頻繁
+                let now = Date.now();
+                if (now - lastSendTime < 100) return; // 每 100 毫秒才發送一次 (即 10Hz)
+                lastSendTime = now;
 
                 socket.emit('steering-data', {
                     name: playerName,
