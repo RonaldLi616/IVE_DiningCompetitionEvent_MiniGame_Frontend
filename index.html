@@ -5,99 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>手機方向盤控制器</title>
+    <link rel="manifest" href="manifest.json">
+    <title>Unity 30人競技控制器</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+        :root { --bg: #121212; --accent: #007bff; }
         body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: #1a1a1a;
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg); color: white;
+            font-family: -apple-system, sans-serif; overflow: hidden;
         }
 
-        /* 遊戲容器：這是核心，當手機直放時，我們會旋轉這個 div */
+        /* 虛擬旋轉容器：解決 iPhone 鎖定問題 */
         #game-container {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             transition: all 0.3s ease;
         }
 
-        /* 當螢幕為直向 (Portrait) 時的虛擬旋轉邏輯 */
         @media screen and (orientation: portrait) {
             #game-container {
-                width: 100vh;
-                height: 100vw;
-                transform: rotate(90deg);
-                transform-origin: center;
-                /* 將容器定位在中央並旋轉 */
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                margin-top: -50vw;
-                margin-left: -50vh;
+                width: 100vh; height: 100vw;
+                transform: rotate(90deg); transform-origin: center;
+                position: fixed; top: 50%; left: 50%;
+                margin-top: -50vw; margin-left: -50vh;
             }
         }
 
-        /* 設定介面樣式 */
-        #setup-ui {
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-        }
-
+        /* 設定介面 */
+        #setup-ui { text-align: center; width: 85%; max-width: 400px; }
         input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: none;
-            font-size: 1rem;
-            text-align: center;
+            width: 100%; padding: 15px; margin: 15px 0;
+            border-radius: 10px; border: none; font-size: 1.1rem; text-align: center;
         }
 
-        .color-options {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
+        .color-grid {
+            display: flex; justify-content: space-around; margin: 20px 0;
         }
-
         .color-btn {
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            cursor: pointer;
-            transition: 0.2s;
+            width: 45px; height: 45px; border-radius: 50%;
+            border: 3px solid transparent; cursor: pointer; transition: 0.2s;
         }
+        .color-btn.active { border-color: white; transform: scale(1.2); }
 
-        .color-btn.active {
-            border-color: white;
-            transform: scale(1.2);
+        /* 控制介面 */
+        #control-ui { display: none; text-align: center; }
+        #angle-display { font-size: 5rem; font-weight: bold; margin: 10px 0; font-family: monospace; }
+        #speed-label { font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; }
+
+        .btn-start {
+            background: var(--accent); color: white; border: none;
+            padding: 15px 50px; border-radius: 50px; font-size: 1.2rem;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,123,255,0.4);
         }
-
-        /* 控制介面樣式 (預設隱藏) */
-        #control-ui {
-            display: none;
-            text-align: center;
-        }
-        
-        #data-display { font-size: 5rem; font-weight: bold; }
-
-        .btn-primary {
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-        }
-
     </style>
 </head>
 <body>
@@ -105,37 +66,41 @@
     <div id="game-container">
         
         <div id="setup-ui">
-            <h2>玩家設定</h2>
-            <input type="text" id="player-name" placeholder="輸入你的名稱..." maxlength="10">
+            <h2 style="margin-bottom: 5px;">準備競賽</h2>
+            <p style="color: #888; margin-top: 0;">請輸入名稱與選擇代表色</p>
             
-            <p>選擇車輛顏色：</p>
-            <div class="color-options">
-                <div class="color-btn active" style="background: #ff4444;" data-color="red"></div>
-                <div class="color-btn" style="background: #4444ff;" data-color="blue"></div>
-                <div class="color-btn" style="background: #44ff44;" data-color="green"></div>
-                <div class="color-btn" style="background: #ffff44;" data-color="yellow"></div>
+            <input type="text" id="player-name" placeholder="您的名稱" maxlength="10">
+            
+            <div class="color-grid">
+                <div class="color-btn active" style="background: #ff4757;" data-color="Red"></div>
+                <div class="color-btn" style="background: #1e90ff;" data-color="Blue"></div>
+                <div class="color-btn" style="background: #2ed573;" data-color="Green"></div>
+                <div class="color-btn" style="background: #ffa502;" data-color="Yellow"></div>
             </div>
 
-            <button id="start-btn" class="btn-primary">啟動並連線</button>
+            <button id="start-btn" class="btn-start">啟動控制器</button>
+            <p style="font-size: 0.7rem; color: #444; margin-top: 20px;">建議開啟 iPhone 系統「直向鎖定」</p>
         </div>
 
         <div id="control-ui">
-            <div id="player-tag" style="font-size: 1.2rem; color: #aaa;"></div>
-            <div id="data-display">0°</div>
-            <p id="status">正在傳輸數據...</p>
+            <div id="name-tag" style="font-size: 1.5rem; margin-bottom: 5px;"></div>
+            <div id="angle-display">0°</div>
+            <div id="speed-label">STOP</div>
+            <p style="color: #444; font-size: 0.8rem; margin-top: 20px;">左右旋轉手機以控制 Prefab</p>
         </div>
 
     </div>
 
     <script>
-        // 1. 設定你的 Render 伺服器網址
+        // --- 核心設定 ---
         const RENDER_URL = "https://ive-diningcompetitionevent-minigame.onrender.com"; 
         const socket = io(RENDER_URL);
 
-        let selectedColor = "red";
+        let selectedColor = "Red";
         let playerName = "";
+        let lastSteering = 0;
 
-        // 顏色選擇邏輯
+        // 顏色切換
         const colorBtns = document.querySelectorAll('.color-btn');
         colorBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -145,57 +110,86 @@
             });
         });
 
-        // 啟動按鈕邏輯
-        const startBtn = document.getElementById('start-btn');
-        startBtn.addEventListener('click', async () => {
+        // 啟動與權限
+        document.getElementById('start-btn').addEventListener('click', async () => {
             playerName = document.getElementById('player-name').value.trim();
-            if (!playerName) {
-                alert("請輸入名稱！");
-                return;
-            }
+            if (!playerName) { alert("請輸入名稱！"); return; }
 
             // iOS 權限請求
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission !== 'granted') return;
+                    if (permission !== 'granted') { alert("需授權感測器才能操作"); return; }
                 } catch (e) { console.error(e); }
             }
 
             // 切換 UI
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('control-ui').style.display = 'block';
-            document.getElementById('player-tag').innerText = `玩家：${playerName}`;
-            document.getElementById('player-tag').style.color = selectedColor;
+            document.getElementById('name-tag').innerText = playerName;
+            document.getElementById('name-tag').style.color = getHexColor(selectedColor);
 
-            // 發送初始加入資料給伺服器
-            socket.emit('player-join', {
-                name: playerName,
-                color: selectedColor
-            });
+            // 進入全螢幕
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            // 發送加入事件
+            socket.emit('player-join', { name: playerName, color: selectedColor });
 
             initTracker();
         });
 
+        function getHexColor(colorName) {
+            const colors = { Red: '#ff4757', Blue: '#1e90ff', Green: '#2ed573', Yellow: '#ffa502' };
+            return colors[colorName] || 'white';
+        }
+
         function initTracker() {
             window.addEventListener('deviceorientation', (event) => {
                 const isPortrait = window.innerHeight > window.innerWidth;
-                let steering = isPortrait ? Math.round(event.gamma) : Math.round(event.beta);
+                
+                // 1. 取得原始角度 (iPhone 修正)
+                let rawAngle = isPortrait ? event.gamma : event.beta;
+                
+                // 2. 限制在 45 度內，防止 iPhone 座標反轉
+                let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
 
-                if (steering > 90) steering = 90;
-                if (steering < -90) steering = -90;
+                // 3. 過濾瞬跳錯誤 (如果數值跳動超過 50 度，視為感測器錯誤)
+                if (Math.abs(clampedAngle - lastSteering) > 50) {
+                    clampedAngle = lastSteering;
+                }
+                lastSteering = clampedAngle;
 
-                document.getElementById('data-display').innerText = `${steering}°`;
+                // 4. 死區設定 (3度內視為 0)
+                let steering = Math.abs(clampedAngle) < 3 ? 0 : clampedAngle;
 
-                // 發送轉向數據 (包含玩家身分，方便 Unity 識別)
+                // 5. 判定速度與視覺更新
+                let speedType = 0;
+                let label = "STOP";
+                let color = "white";
+
+                const absA = Math.abs(steering);
+                if (absA > 30) {
+                    speedType = 2; label = "HIGH SPEED"; color = "#ff4444";
+                } else if (absA > 0) {
+                    speedType = 1; label = "NORMAL"; color = "#44ff44";
+                }
+
+                document.getElementById('angle-display').innerText = `${steering}°`;
+                document.getElementById('speed-label').innerText = label;
+                document.getElementById('speed-label').style.color = color;
+
+                // 6. 發送數據給伺服器
+                // 我們發送原始 steering (±45) 和 判定後的 speedType
                 socket.emit('steering-data', {
                     name: playerName,
                     color: selectedColor,
-                    angle: steering
+                    angle: steering,
+                    speedType: speedType
                 });
-            });
+            }, true);
         }
-
     </script>
 </body>
 </html>
