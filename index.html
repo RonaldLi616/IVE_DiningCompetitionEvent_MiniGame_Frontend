@@ -5,67 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="manifest" href="site.webmanifest.json" crossorigin="use-credentials">
     <title>手機方向盤控制器</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body {
+        body, html {
             margin: 0; padding: 0;
+            width: 100%; height: 100%;
             background-color: #1a1a1a;
             color: white;
             font-family: sans-serif;
             overflow: hidden;
+        }
+
+        /* 遊戲容器：這是核心，當手機直放時，我們會旋轉這個 div */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            transition: all 0.3s ease;
         }
 
-        /* 橫向鎖定提醒 */
-        #rotate-notice {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
+        /* 當螢幕為直向 (Portrait) 時的虛擬旋轉邏輯 */
         @media screen and (orientation: portrait) {
-            #rotate-notice { display: flex; }
+            #game-container {
+                width: 100vh;
+                height: 100vw;
+                transform: rotate(90deg);
+                transform-origin: center;
+                /* 將容器定位在中央並旋轉 */
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                margin-top: -50vw;
+                margin-left: -50vh;
+            }
         }
-
-        #status { font-size: 1.2rem; margin-bottom: 20px; color: #00ff00; }
-        #data-display { font-family: monospace; font-size: 2rem; }
         
-        button {
-            padding: 15px 30px;
+        #status { font-size: 1rem; margin-bottom: 20px; color: #888; }
+        #data-display { font-size: 4rem; font-weight: bold; font-family: monospace; }
+        
+        #start-btn {
+            padding: 15px 40px;
             font-size: 1.2rem;
             background: #007bff;
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 50px;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+
+        .instruction {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #555;
         }
     </style>
 </head>
 <body>
 
-    <div id="rotate-notice">
-        <div>
-            <h2>請將手機旋轉至橫向 📱🔄</h2>
-            <p>為了獲得最佳操控體驗</p>
-        </div>
+    <div id="game-container">
+        <div id="status">準備連線...</div>
+        <div id="data-display">0°</div>
+        <br>
+        <button id="start-btn">啟動控制器</button>
+        <p class="instruction">若數字無跳動，請點擊按鈕授權感測器</p>
     </div>
-
-    <div id="status">正在初始化...</div>
-    <div id="data-display">角度: 0°</div>
-    <br>
-    <button id="start-btn">啟動控制器 (請求權限)</button>
 
     <script>
         // 1. 設定你的 Render 伺服器網址
@@ -88,62 +96,55 @@
         });
 
         // 2. 處理感測器權限與邏輯
-        startBtn.addEventListener('click', permissionRequiring);
-
-        async function permissionRequiring() {
-            // iOS 13+ 需要主動請求權限
+        startBtn.addEventListener('click', async () => {
+            // 1. 請求 iOS 感測器權限
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
                     if (permission === 'granted') {
                         initTracker();
                     } else {
-                        alert("存取被拒絕");
+                        alert("存取被拒絕，請刷新頁面再試");
                     }
                 } catch (error) {
                     console.error(error);
                 }
             } else {
-                // 非 iOS 裝置直接啟動
                 initTracker();
             }
             
-            // 嘗試進入全螢幕並鎖定橫向 (部分安卓支援)
-            try {
-                // 必須先進入全螢幕模式，部分瀏覽器才允許鎖定方向
-                if (document.documentElement.requestFullscreen) {
-                    await document.documentElement.requestFullscreen();
-                }
-                
-                // 鎖定為橫向
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('landscape');
-                    console.log("已成功鎖定橫向");
-                }
-            } catch (error) {
-                /*console.error("鎖定失敗:", error);
-                alert("請手動旋轉手機並開啟自動旋轉功能");*/
-                console.log("Web API 鎖定不支援，依賴 Manifest 或手動旋轉");
-                // 如果不是在 WebApp 模式 (standalone)，提醒使用者
-                if (!window.navigator.standalone && !window.matchMedia('(display-mode: standalone)').matches) {
-                    // 這邊可以顯示一個小提示：建議加入主畫面以獲得全螢幕體驗
-                    alert("建議加入主畫面以獲得全螢幕體驗，並確保手機旋轉至橫向");
-                }
+            // 2. 嘗試進入全螢幕 (Android 用)
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
             }
-            startBtn.style.display = 'none'; // 隱藏按鈕
-        } 
+
+            startBtn.style.display = 'none';
+        });
 
         function initTracker() {
             window.addEventListener('deviceorientation', (event) => {
-                // 當手機橫放 (Landscape) 時：
-                // event.beta 代表手機的左右翻轉 (Steering)
-                // 數值通常在 -90 到 90 之間
-                let steering = Math.round(event.beta);
+                let steering = 0;
+                
+                // 檢查目前手機是否物理上處於直向 (Portrait)
+                const isPortrait = window.innerHeight > window.innerWidth;
 
-                // 更新畫面顯示
-                dataText.innerText = `角度: ${steering}°`;
+                if (isPortrait) {
+                    // 【重要】當手機直拿但畫面被旋轉 90 度時：
+                    // 手機的左右傾斜會變成 event.gamma
+                    steering = Math.round(event.gamma);
+                } else {
+                    // 當手機橫拿時：
+                    // 手機的左右傾斜會變成 event.beta
+                    steering = Math.round(event.beta);
+                }
 
-                // 3. 透過 Socket 發送數據到伺服器
+                // 數值平滑處理 (限制在 -90 到 90)
+                if (steering > 90) steering = 90;
+                if (steering < -90) steering = -90;
+
+                dataText.innerText = `${steering}°`;
+
+                // 發送數據
                 socket.emit('steering-data', {
                     angle: steering,
                     timestamp: Date.now()
