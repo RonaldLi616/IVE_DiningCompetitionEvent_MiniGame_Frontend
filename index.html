@@ -232,69 +232,67 @@
             window.addEventListener('deviceorientation', (event) => {
                 const isPortrait = window.innerHeight > window.innerWidth;
                 
-                // 1. 取得原始角度 (iPhone 修正)
+                // 1. 取得原始角度
                 let rawAngle = isPortrait ? event.gamma : event.beta;
                 
-                // 2. 限制在 45 度內，防止 iPhone 座標反轉
+                // 2. 限制在 45 度內
                 let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
 
-                // 3. 過濾瞬跳錯誤 (如果數值跳動超過 50 度，視為感測器錯誤)
+                // 3. 過濾瞬跳
                 if (Math.abs(clampedAngle - lastSteering) > 50) {
                     clampedAngle = lastSteering;
                 }
                 lastSteering = clampedAngle;
 
+                // 取得 DOM
                 const container = document.getElementById('game-container');
                 const display = document.getElementById('angle-display');
+                const wheel = document.getElementById('steering-wheel');
+                const wheelWrapper = document.getElementById('wheel-wrapper');
 
-                // 4. 死區設定 (3度內視為 0)
+                // 4. 死區設定
                 let steering = Math.abs(clampedAngle) < 3 ? 0 : clampedAngle;
+                const absA = Math.abs(steering);
 
-                // 5. 判定速度與視覺更新
+                // --- 修正後的邏輯判斷 (由嚴格到寬鬆) ---
                 let speedType = 0;
                 let label = "STOP";
                 let color = "white";
 
-                const absA = Math.abs(steering);
+                // 先檢查是否達到「警告」等級
+                if (absA >= 40) {
+                    container.classList.add('warning-active');
+                    wheelWrapper.classList.add('extreme-turn');
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    display.style.transform = "translate(-50%, -50%) scale(1.2)"; 
+                    wheel.style.setProperty('--current-deg', `${clampedAngle * 1.2}deg`);
+                } else {
+                    container.classList.remove('warning-active');
+                    wheelWrapper.classList.remove('extreme-turn');
+                    display.style.transform = "translate(-50%, -50%) scale(1)";
+                }
+
+                // 再設定速度等級
                 if (absA > 30) {
                     speedType = 2; label = "HIGH SPEED"; color = "#ff4444";
                 } else if (absA > 0) {
                     speedType = 1; label = "NORMAL"; color = "#44ff44";
-                } else if (absA >= 40) {
-                    // 接近極限：背景閃爍紅光 + 震動
-                    container.classList.add('warning-active');
-                    if (navigator.vibrate) navigator.vibrate(50); // 觸發 50ms 震動
-                    display.style.transform = "scale(1.2)"; // 放大數字提醒
-                    document.getElementById('wheel-wrapper').classList.add('extreme-turn');
-                    // 設定 CSS 變數讓震動動畫能維持當前角度
-                    document.getElementById('steering-wheel').style.setProperty('--current-deg', `${clampedAngle * 1.2}deg`);
-                } else {
-                    container.classList.remove('warning-active');
-                    display.style.transform = "scale(1)"; // 恢復正常大小
-                    document.getElementById('wheel-wrapper').classList.remove('extreme-turn');
                 }
 
-                if (steering === 0) {
-                    document.getElementById('steering-wheel').style.opacity = "0.8";
-                } else {
-                    document.getElementById('steering-wheel').style.opacity = "1";
-                }
+                // --- 補上方向盤旋轉顯示 ---
+                wheel.style.transform = `rotate(${clampedAngle * 1.2}deg)`;
+                wheel.style.opacity = (steering === 0) ? "0.8" : "1";
 
-                // --- 策略 D: 靈敏度放大 (Sensitivity) ---
-                // 玩家轉 45 度，我們傳給 Unity 90 度，讓玩家不需要轉太深就能過彎
-                let unityAngle = clampedAngle * 2; 
-
-                // 更新 UI
-                document.getElementById('angle-display').innerText = `${steering}°`;
+                // 更新 UI 文字
+                display.innerText = `${steering}°`;
                 document.getElementById('speed-label').innerText = label;
                 document.getElementById('speed-label').style.color = color;
 
-                // 6. 發送數據給伺服器
-                // 我們發送原始 steering (±45) 和 判定後的 speedType
+                // 6. 發送數據
                 socket.emit('steering-data', {
                     name: playerName,
                     color: selectedColor,
-                    angle: steering,
+                    angle: clampedAngle * 2, // 靈敏度放大發送
                     speedType: speedType
                 });
             }, true);
