@@ -121,8 +121,14 @@
                     console.log("已成功鎖定橫向");
                 }
             } catch (error) {
-                console.error("鎖定失敗:", error);
-                alert("請手動旋轉手機並開啟自動旋轉功能");
+                /*console.error("鎖定失敗:", error);
+                alert("請手動旋轉手機並開啟自動旋轉功能");*/
+                console.log("Web API 鎖定不支援，依賴 Manifest 或手動旋轉");
+                // 如果不是在 WebApp 模式 (standalone)，提醒使用者
+                if (!window.navigator.standalone && !window.matchMedia('(display-mode: standalone)').matches) {
+                    // 這邊可以顯示一個小提示：建議加入主畫面以獲得全螢幕體驗
+                    alert("建議加入主畫面以獲得全螢幕體驗，並確保手機旋轉至橫向");
+                }
             }
             startBtn.style.display = 'none'; // 隱藏按鈕
         } 

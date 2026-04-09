@@ -1,9 +1,16 @@
 {
-  "name": "Unity Controller",
-  "short_name": "Controller",
+  "name": "手機方向盤控制器",
+  "short_name": "控制器",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#121212",
-  "theme_color": "#121212"
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
 }
