@@ -1,6 +1,7 @@
 {
   "name": "手機方向盤控制器",
   "short_name": "控制器",
+  "id": "/?main",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "landscape",
