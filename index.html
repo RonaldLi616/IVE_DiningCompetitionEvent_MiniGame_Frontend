@@ -84,7 +84,9 @@
         });
 
         // 2. 處理感測器權限與邏輯
-        startBtn.addEventListener('click', async () => {
+        startBtn.addEventListener('click', permissionRequiring);
+
+        async function permissionRequiring() {
             // iOS 13+ 需要主動請求權限
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
@@ -103,11 +105,23 @@
             }
             
             // 嘗試進入全螢幕並鎖定橫向 (部分安卓支援)
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
+            try {
+                // 必須先進入全螢幕模式，部分瀏覽器才允許鎖定方向
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                }
+                
+                // 鎖定為橫向
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                    console.log("已成功鎖定橫向");
+                }
+            } catch (error) {
+                console.error("鎖定失敗:", error);
+                alert("請手動旋轉手機並開啟自動旋轉功能");
             }
             startBtn.style.display = 'none'; // 隱藏按鈕
-        });
+        } 
 
         function initTracker() {
             window.addEventListener('deviceorientation', (event) => {
@@ -126,26 +140,7 @@
                 });
             });
         }
-
-        startBtn.addEventListener('click', lockLandscape);
-
-        async function lockLandscape() {
-            try {
-                // 必須先進入全螢幕模式，部分瀏覽器才允許鎖定方向
-                if (document.documentElement.requestFullscreen) {
-                    await document.documentElement.requestFullscreen();
-                }
-                
-                // 鎖定為橫向
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('landscape');
-                    console.log("已成功鎖定橫向");
-                }
-            } catch (error) {
-                console.error("鎖定失敗:", error);
-                alert("請手動旋轉手機並開啟自動旋轉功能");
-            }
-        }
+        
     </script>
 </body>
 </html>
