@@ -169,10 +169,32 @@
             let lastSendTime = 0;
             window.addEventListener('deviceorientation', (event) => {
                 const isPortrait = window.innerHeight > window.innerWidth;
-                // 注意：iPhone 的橫向座標修正邏輯
-                let rawAngle = isPortrait ? event.gamma : event.beta;
+        
+                // 獲取螢幕旋轉角度 (0, 90, -90/270)
+                const orientationAngle = window.orientation || (screen.orientation && screen.orientation.angle) || 0;
+
+                // --- 核心修正處：橫向模式下將 beta 取負值以修正鏡像 ---
+                let rawAngle = 0;
+                if (isPortrait) {
+                    rawAngle = event.gamma; // 直向正常使用 gamma
+                } else {
+                    // 處理兩種橫向模式
+                    if (orientationAngle === 90) {
+                        // Home 鍵在右側
+                        rawAngle = -event.beta;
+                    } else if (orientationAngle === -90 || orientationAngle === 270) {
+                        // Home 鍵在左側 (旋轉了 180 度)
+                        rawAngle = event.beta; // 移除負號，因為手機倒過來了
+                    } else {
+                        // 備用方案
+                        rawAngle = -event.beta;
+                    }
+                }
+
+                // 確保數值存在，並限制在 -45 到 45 度
                 let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle || 0)));
 
+                // 突跳過濾：如果變化過大（例如手機翻轉），則維持上一次的角度
                 if (Math.abs(clampedAngle - lastSteering) > 50) clampedAngle = lastSteering;
                 lastSteering = clampedAngle;
 
@@ -181,9 +203,11 @@
                 const wheel = document.getElementById('steering-wheel');
                 const wheelWrapper = document.getElementById('wheel-wrapper');
 
+                // 死區處理：角度太小時視為 0，避免手震抖動
                 let steering = Math.abs(clampedAngle) < 3 ? 0 : clampedAngle;
                 const absA = Math.abs(steering);
 
+                // UI 反饋：極限轉向時觸發震動與紅色警告
                 if (absA >= 40) {
                     container.classList.add('warning-active');
                     wheelWrapper.classList.add('extreme-turn');
@@ -194,18 +218,20 @@
                     wheelWrapper.classList.remove('extreme-turn');
                 }
 
+                // 更新手機畫面的方向盤旋轉 (乘上 1.2 讓視覺轉向幅度大一點)
                 wheel.style.transform = `rotate(${clampedAngle * 1.2}deg)`;
                 display.innerText = `${steering}°`;
 
-                // 節流發送資料，避免過於頻繁
+                // 節流發送資料：確保 10Hz (每 100 毫秒發送一次)
                 let now = Date.now();
-                if (now - lastSendTime < 100) return; // 每 100 毫秒才發送一次 (即 10Hz)
+                if (now - lastSendTime < 100) return; 
                 lastSendTime = now;
 
+                // 發送數據到伺服器
                 socket.emit('steering-data', {
                     name: playerName,
                     color: selectedColor,
-                    angle: steering * 2,
+                    angle: steering, // 這裡建議傳原始 steering，Unity 那邊再決定要乘多少
                     speedType: absA > 30 ? 2 : (absA > 0 ? 1 : 0)
                 });
             }, true);
