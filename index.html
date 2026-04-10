@@ -181,13 +181,13 @@
                     // 處理兩種橫向模式
                     if (orientationAngle === 90) {
                         // Home 鍵在右側
-                        rawAngle = -event.beta;
+                        rawAngle = event.beta;
                     } else if (orientationAngle === -90 || orientationAngle === 270) {
                         // Home 鍵在左側 (旋轉了 180 度)
-                        rawAngle = event.beta; // 移除負號，因為手機倒過來了
+                        rawAngle = -event.beta; // 移除負號，因為手機倒過來了
                     } else {
                         // 備用方案
-                        rawAngle = -event.beta;
+                        rawAngle = event.beta;
                     }
                 }
 
