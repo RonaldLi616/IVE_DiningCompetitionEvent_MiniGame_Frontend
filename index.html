@@ -32,26 +32,67 @@
             }
         }
 
-        #setup-ui { text-align: center; width: 85%; max-width: 400px; z-index: 20; }
-        input[type="text"] {
-            width: 100%; padding: 15px; margin: 15px 0;
-            border-radius: 10px; border: none; font-size: 1.1rem; text-align: center;
+        #setup-ui { 
+            text-align: center; 
+            width: 95%; 
+            max-width: 400px; 
+            z-index: 20; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            /* 核心：利用 gap 縮小間距，確保不超出螢幕 */
+            gap: 8px; 
         }
 
-        /* 選色器容器 */
+        h2 { margin: 5px 0; font-size: 1.2rem; }
+
+        input[type="text"] {
+            width: 80%; 
+            padding: 10px; 
+            margin: 0;
+            border-radius: 8px; 
+            border: none; 
+            font-size: 1rem; 
+            text-align: center;
+            background: #2a2a2a; 
+            color: white;
+        }
+
+        /* 縮小選色器容器 */
         #picker-wrapper {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 15px;
+        }
+
+        #iro-picker {
+            /* 防止選色器過大 */
+            margin: 5px 0;
+        }
+
+        #hex-label { 
+            margin: 5px 0 0 0; 
+            font-size: 0.8rem; 
+            font-family: monospace; 
+            opacity: 0.6; 
         }
 
         .btn-start { 
-            background: var(--accent); color: white; border: none; 
-            padding: 12px 60px; border-radius: 50px; font-size: 1.2rem; 
-            cursor: pointer; margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 10px 40px; 
+            border-radius: 50px; 
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            margin-top: 5px;
+            transition: transform 0.1s;
         }
+
+        .btn-start:active { transform: scale(0.95); }
 
         #control-ui { 
             display: none; 
@@ -128,13 +169,19 @@
         const socket = io(RENDER_URL);
         let selectedColorHex = "#ff4757", playerName = "", lastSteering = 0;
 
-        // --- 初始化 iro.js 選色器 ---
+        // --- 修改：將選色器尺寸調小 (150px) ---
         const colorPicker = new iro.ColorPicker("#iro-picker", {
-            width: 180, // 手機端不要太大
+            width: 150, // 縮小尺寸以適應小螢幕
             color: "#ff4757",
             layout: [
-                { component: iro.ui.Wheel },
-                { component: iro.ui.Slider, options: { sliderType: 'value' } }
+                { 
+                    component: iro.ui.Wheel,
+                    options: { margin: 10 } 
+                },
+                { 
+                    component: iro.ui.Slider, 
+                    options: { sliderType: 'value', margin: 10 } 
+                }
             ]
         });
 
