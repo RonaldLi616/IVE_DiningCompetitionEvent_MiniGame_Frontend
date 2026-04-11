@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <title>Unity 30人競技控制器</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         :root { --bg: #121212; --accent: #007bff; }
         body, html {
@@ -36,10 +37,21 @@
             width: 100%; padding: 15px; margin: 15px 0;
             border-radius: 10px; border: none; font-size: 1.1rem; text-align: center;
         }
-        .color-grid { display: flex; justify-content: space-around; margin: 20px 0; }
-        .color-btn { width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: 0.2s; }
-        .color-btn.active { border-color: white; transform: scale(1.2); }
-        .btn-start { background: var(--accent); color: white; border: none; padding: 15px 50px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; }
+
+        /* 選色器容器 */
+        #picker-wrapper {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+        }
+
+        .btn-start { 
+            background: var(--accent); color: white; border: none; 
+            padding: 12px 60px; border-radius: 50px; font-size: 1.2rem; 
+            cursor: pointer; margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        }
 
         #control-ui { 
             display: none; 
@@ -95,11 +107,9 @@
         <div id="setup-ui">
             <h2>準備競賽</h2>
             <input type="text" id="player-name" placeholder="您的名稱" maxlength="10">
-            <div class="color-grid">
-                <div class="color-btn active" style="background: #ff4757;" data-color="Red"></div>
-                <div class="color-btn" style="background: #1e90ff;" data-color="Blue"></div>
-                <div class="color-btn" style="background: #2ed573;" data-color="Green"></div>
-                <div class="color-btn" style="background: #ffa502;" data-color="Yellow"></div>
+            <div id="picker-wrapper">
+                <div id="iro-picker"></div>
+                <p id="hex-label" style="margin: 10px 0 0 0; font-family: monospace; opacity: 0.7;">#FF4757</p>
             </div>
             <button id="start-btn" class="btn-start">啟動控制器</button>
         </div>
@@ -116,25 +126,22 @@
     <script>
         const RENDER_URL = "https://ive-diningcompetitionevent-minigame.onrender.com"; 
         const socket = io(RENDER_URL);
-        let selectedColor = "Red", playerName = "", lastSteering = 0;
+        let selectedColorHex = "#ff4757", playerName = "", lastSteering = 0;
 
-        // --- 新增：補上缺少的顏色轉換函數 ---
-        function getHexColor(colorName) {
-            const colors = { 
-                Red: '#ff4757', 
-                Blue: '#1e90ff', 
-                Green: '#2ed573', 
-                Yellow: '#ffa502' 
-            };
-            return colors[colorName] || '#ffffff';
-        }
+        // --- 初始化 iro.js 選色器 ---
+        const colorPicker = new iro.ColorPicker("#iro-picker", {
+            width: 180, // 手機端不要太大
+            color: "#ff4757",
+            layout: [
+                { component: iro.ui.Wheel },
+                { component: iro.ui.Slider, options: { sliderType: 'value' } }
+            ]
+        });
 
-        document.querySelectorAll('.color-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedColor = btn.getAttribute('data-color');
-            });
+        // 監聽選色變化
+        colorPicker.on('color:change', function(color) {
+            selectedColorHex = color.hexString;
+            document.getElementById('hex-label').innerText = selectedColorHex.toUpperCase();
         });
 
         document.getElementById('start-btn').addEventListener('click', async () => {
@@ -159,7 +166,7 @@
             
             const nameTag = document.getElementById('name-tag');
             nameTag.innerText = playerName;
-            nameTag.style.color = getHexColor(selectedColor); 
+            nameTag.style.color = selectedColorHex; // 直接使用 Hex 色值
 
             socket.emit('player-join', { name: playerName, color: selectedColor });
             initTracker();
@@ -230,7 +237,7 @@
                 // 發送數據到伺服器
                 socket.emit('steering-data', {
                     name: playerName,
-                    color: selectedColor,
+                    color: selectedColorHex, // 直接傳 Hex 色值
                     angle: steering, // 這裡建議傳原始 steering，Unity 那邊再決定要乘多少
                     speedType: absA > 30 ? 2 : (absA > 0 ? 1 : 0)
                 });
