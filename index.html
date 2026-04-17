@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Unity 30人競技控制器</title>
+    <title>Unity 競技控制器 - 直向版</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
@@ -13,133 +13,112 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg); color: white;
-            font-family: -apple-system, sans-serif; overflow: hidden;
-            touch-action: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden; touch-action: none;
         }
 
         #game-container {
-            width: 100vw; height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; position: relative;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative;
         }
 
-        @media screen and (orientation: portrait) {
-            #game-container {
-                width: 100vh; height: 100vw;
-                transform: rotate(90deg); transform-origin: center;
-                position: fixed; top: 50%; left: 50%;
-                margin-top: -50vw; margin-left: -50vh;
-            }
-        }
-
+        /* 初始設定介面 */
         #setup-ui { 
             text-align: center; 
-            width: 95%; 
-            max-width: 400px; 
+            width: 85%; max-width: 320px; 
             z-index: 20; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            gap: 8px; 
+            display: flex; flex-direction: column; align-items: center; gap: 15px; 
         }
 
-        h2 { margin: 5px 0; font-size: 1.2rem; }
+        h2 { margin-bottom: 10px; font-size: 1.5rem; letter-spacing: 1px; }
 
         input[type="text"] {
-            width: 80%; 
-            padding: 10px; 
-            border-radius: 8px; 
-            border: none; 
-            font-size: 1rem; 
-            text-align: center;
-            background: #2a2a2a; 
-            color: white;
+            width: 100%; padding: 12px; 
+            border-radius: 12px; border: 2px solid #333; 
+            font-size: 1.1rem; text-align: center;
+            background: #1e1e1e; color: white; outline: none;
         }
+        input[type="text"]:focus { border-color: var(--accent); }
 
         #picker-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 15px;
+            padding: 15px; background: rgba(255,255,255,0.05);
+            border-radius: 20px; display: flex; flex-direction: column; align-items: center;
         }
 
-        #hex-label { 
-            margin: 5px 0 0 0; 
-            font-size: 0.8rem; 
-            font-family: monospace; 
-            opacity: 0.6; 
-        }
+        #hex-label { margin-top: 10px; font-size: 0.9rem; font-family: monospace; opacity: 0.5; }
 
         .btn-start { 
-            background: var(--accent); 
-            color: white; 
-            border: none; 
-            padding: 10px 40px; 
-            border-radius: 50px; 
-            font-size: 1.1rem; 
-            cursor: pointer; 
-            margin-top: 5px;
+            background: var(--accent); color: white; border: none; 
+            padding: 15px 50px; border-radius: 50px; 
+            font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
         }
 
+        /* 控制器介面 */
         #control-ui { 
             display: none; 
             width: 100%; height: 100%;
-            position: absolute; top: 0; left: 0;
-            flex-direction: column; align-items: center; justify-content: center;
-            gap: 20px;
+            flex-direction: column; align-items: center; justify-content: space-evenly;
+        }
+
+        #name-tag {
+            font-size: 1.4rem; font-weight: bold;
+            padding: 10px 30px; border-radius: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid currentColor;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
         #wheel-wrapper {
             position: relative;
-            width: 65vmin; height: 65vmin;
+            width: 80vw; height: 80vw;
+            max-width: 400px; max-height: 400px;
         }
 
         #steering-wheel {
             width: 100%; height: 100%;
             object-fit: contain;
-            transition: transform 0.1s ease-out;
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+            transition: transform 0.05s linear;
         }
 
         #angle-display {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 3.5rem; font-weight: bold; font-family: monospace;
+            font-size: 3rem; font-weight: 800; font-family: 'Courier New', monospace;
             z-index: 10; pointer-events: none;
+            color: white; text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
-        #name-tag {
-            font-size: 1.2rem; font-weight: bold;
-            padding: 8px 25px; border-radius: 30px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid currentColor;
-        }
+        #hint-text { font-size: 0.9rem; opacity: 0.4; margin-bottom: 20px; }
 
-        @keyframes warning-flash { 0%, 100% { background-color: #121212; } 50% { background-color: #600000; } }
-        .warning-active { animation: warning-flash 0.5s infinite; }
+        /* 警告閃爍效果 */
+        @keyframes warning-flash { 0%, 100% { background-color: #121212; } 50% { background-color: #400000; } }
+        .warning-active { animation: warning-flash 0.4s infinite; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
         <div id="setup-ui">
-            <h2>準備競賽</h2>
-            <input type="text" id="player-name" placeholder="您的名稱" maxlength="10">
+            <h2>PLAYER JOIN</h2>
+            <input type="text" id="player-name" placeholder="輸入您的名稱" maxlength="8">
             <div id="picker-wrapper">
                 <div id="iro-picker"></div>
                 <p id="hex-label">#FF4757</p>
             </div>
-            <button id="start-btn" class="btn-start">啟動控制器</button>
+            <button id="start-btn" class="btn-start">START</button>
         </div>
 
         <div id="control-ui">
-            <div id="name-tag">玩家名稱</div>
+            <div id="name-tag">PLAYER</div>
             <div id="wheel-wrapper">
                 <img id="steering-wheel" src="SteeringWheel.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2062/2062128.png'">
                 <div id="angle-display">0°</div>
             </div>
+            <div id="hint-text">左右傾斜手機來控制移動</div>
         </div>
     </div>
 
@@ -149,11 +128,13 @@
         let selectedColorHex = "#ff4757", playerName = "", lastSteering = 0, lastSendTime = 0;
 
         const colorPicker = new iro.ColorPicker("#iro-picker", {
-            width: 150,
+            width: 180,
             color: "#ff4757",
+            borderWidth: 2,
+            borderColor: "#fff",
             layout: [
-                { component: iro.ui.Wheel, options: { margin: 10 } },
-                { component: iro.ui.Slider, options: { sliderType: 'value', margin: 10 } }
+                { component: iro.ui.Wheel, options: {} },
+                { component: iro.ui.Slider, options: { sliderType: 'value' } }
             ]
         });
 
@@ -163,56 +144,49 @@
         });
 
         document.getElementById('start-btn').addEventListener('click', async () => {
-            playerName = document.getElementById('player-name').value.trim();
-            if (!playerName) return alert("請輸入名稱！");
+            const inputName = document.getElementById('player-name').value.trim();
+            if (!inputName) return alert("請輸入名稱！");
+            playerName = inputName;
 
-            // 請求權限 (iOS)
+            // 請求陀螺儀權限 (iOS 13+)
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission !== 'granted') return alert("需授權感測器權限");
+                    if (permission !== 'granted') return alert("需要感測器權限才能遊玩");
                 } catch (e) { console.error(e); }
             }
 
-            // 切換 UI
+            // UI 切換
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('control-ui').style.display = 'flex'; 
             document.getElementById('name-tag').innerText = playerName;
             document.getElementById('name-tag').style.color = selectedColorHex;
 
-            // 修正：發送正確的變數
             socket.emit('player-join', { name: playerName, color: selectedColorHex });
 
-            // 啟動監聽
             window.addEventListener('deviceorientation', handleMotion, true);
         });
 
         function handleMotion(event) {
-            // 如果沒抓到數據則跳過
-            if (event.beta === null && event.gamma === null) return;
+            // 直向模式下，gamma 是手機左右傾斜的角度 (-90 到 90)
+            if (event.gamma === null) return;
 
-            const isPortrait = window.innerHeight > window.innerWidth;
-            const orientationAngle = window.orientation || (screen.orientation && screen.orientation.angle) || 0;
+            let rawAngle = event.gamma; 
+            
+            // 限制角度在 -45 到 45 之間，這通常是舒適的遊戲範圍
+            let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
+            
+            // 防抖動：只有在變化超過 1 度時才處理（視覺上）
+            if (Math.abs(clampedAngle - lastSteering) < 1) return;
 
-            let rawAngle = 0;
-            if (isPortrait) {
-                rawAngle = event.gamma;
-            } else {
-                if (orientationAngle === 90) rawAngle = event.beta;
-                else if (orientationAngle === -90 || orientationAngle === 270) rawAngle = -event.beta;
-                else rawAngle = event.beta;
-            }
-
-            let clampedAngle = Math.max(-45, Math.min(45, Math.round(rawAngle || 0)));
-            if (Math.abs(clampedAngle - lastSteering) > 50) clampedAngle = lastSteering;
-            lastSteering = clampedAngle;
-
-            // 更新 UI
+            // 死區設定：正負 3 度內視為 0
             const steering = Math.abs(clampedAngle) < 3 ? 0 : clampedAngle;
-            document.getElementById('steering-wheel').style.transform = `rotate(${clampedAngle * 1.2}deg)`;
+            
+            // 更新畫面
+            document.getElementById('steering-wheel').style.transform = `rotate(${clampedAngle * 1.5}deg)`;
             document.getElementById('angle-display').innerText = `${steering}°`;
 
-            // 警告效果
+            // 警告效果與震動 (傾斜超過 40 度)
             const container = document.getElementById('game-container');
             if (Math.abs(steering) >= 40) {
                 container.classList.add('warning-active');
@@ -221,16 +195,18 @@
                 container.classList.remove('warning-active');
             }
 
-            // 節流發送 (10Hz)
+            // 節流發送 (每秒 10 次，減輕伺服器負擔)
             let now = Date.now();
             if (now - lastSendTime > 100) {
                 socket.emit('steering-data', {
                     name: playerName,
                     color: selectedColorHex,
                     angle: steering,
-                    speedType: Math.abs(steering) > 30 ? 2 : (Math.abs(steering) > 0 ? 1 : 0)
+                    // 根據傾斜程度決定速度等級
+                    speedType: Math.abs(steering) > 35 ? 2 : (Math.abs(steering) > 5 ? 1 : 0)
                 });
                 lastSendTime = now;
+                lastSteering = clampedAngle;
             }
         }
     </script>
