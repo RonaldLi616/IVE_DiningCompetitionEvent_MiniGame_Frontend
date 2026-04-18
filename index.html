@@ -25,21 +25,22 @@
             position: relative;
         }
 
-        .top-bar { position: absolute; top: 20px; right: 20px; z-index: 100; }
+        .top-bar { position: absolute; top: 15px; right: 15px; z-index: 100; }
         .icon-btn-close {
             background: var(--card-bg); border: none; color: white;
-            width: 44px; height: 44px; border-radius: 50%; font-size: 1.5rem;
+            width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
         }
 
+        /* 主設定區面，嚴格限制寬度 */
         #setup-ui { 
-            width: 90%; max-width: 340px;
+            width: 100%; max-width: 320px;
+            padding: 0 20px; box-sizing: border-box;
             display: flex; flex-direction: column; 
             align-items: center; text-align: center; gap: 15px;
-            box-sizing: border-box;
         }
 
-        h2 { margin: 0; font-size: 1.4rem; letter-spacing: 2px; font-weight: 800; }
+        h2 { margin: 0; font-size: 1.3rem; letter-spacing: 1px; font-weight: 800; }
 
         input[type="text"] {
             width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #333; 
@@ -56,28 +57,40 @@
             display: flex; justify-content: space-between; align-items: center;
             width: 100%; margin-top: 10px;
         }
-        #hex-label { font-family: monospace; opacity: 0.6; font-size: 0.8rem; }
+        #hex-label { font-family: monospace; opacity: 0.6; font-size: 0.8rem; margin: 0; }
         .btn-random {
             background: #444; border: none; color: white; padding: 6px 12px;
-            border-radius: 8px; font-size: 0.75rem; font-weight: bold;
+            border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer;
         }
 
-        /* 車輛選擇：修正溢出 */
-        .car-selector { width: 100%; box-sizing: border-box; }
-        .car-selector p { font-size: 0.75rem; opacity: 0.5; margin-bottom: 8px; text-align: left; }
-        .car-grid {
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 10px; 
-            width: 100%;
-            box-sizing: border-box; /* 確保內距不導致溢出 */
+        /* 🟢 改良：水平捲動選擇器 */
+        .car-selector { 
+            width: 100%; 
+            box-sizing: border-box; 
+            overflow: hidden; /* 防止父容器被撐開 */
         }
+        .car-selector p { font-size: 0.75rem; opacity: 0.5; margin-bottom: 5px; text-align: left; }
+        
+        .car-scroll-container {
+            display: flex;
+            overflow-x: auto; /* 啟動水平滑動 */
+            gap: 12px;
+            padding: 5px 2px 10px 2px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* 隱藏捲動條 (美觀) */
+        .car-scroll-container::-webkit-scrollbar { display: none; }
+
         .car-option {
+            flex: 0 0 60px; /* 固定寬度，不縮放 */
+            height: 60px;
             background: #1a1a1a; border: 2px solid #333; border-radius: 12px;
-            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; padding: 12px; /* 增加內距讓圖示變小 */
-            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; padding: 10px; 
             box-sizing: border-box;
+            scroll-snap-align: start;
         }
         .car-option.active { border-color: var(--accent); background: rgba(0, 123, 255, 0.15); }
         
@@ -92,7 +105,7 @@
         .btn-start { 
             width: 100%; background: var(--accent); color: white; border: none; 
             padding: 15px; border-radius: 50px; font-size: 1.2rem; font-weight: 800;
-            box-shadow: 0 8px 20px rgba(0,123,255,0.3); cursor: pointer;
+            cursor: pointer;
         }
 
         /* 控制介面 */
@@ -101,10 +114,7 @@
             flex-direction: column; align-items: center; justify-content: space-evenly;
             padding: 40px 0; box-sizing: border-box;
         }
-        #active-car-display {
-            width: 100px; height: 100px;
-            filter: drop-shadow(0 0 15px rgba(0,0,0,0.5));
-        }
+        #active-car-display { width: 90px; height: 90px; }
         #name-tag {
             font-size: 1.4rem; font-weight: bold; padding: 8px 30px; border-radius: 40px;
             background: rgba(0,0,0,0.6); border: 2px solid currentColor; margin-top: 10px;
@@ -116,9 +126,6 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 3rem; font-weight: 900; font-family: monospace;
         }
-
-        @keyframes warning-flash { 0%, 100% { background-color: #0f0f0f; } 50% { background-color: #600000; } }
-        .warning-active { animation: warning-flash 0.4s infinite; }
     </style>
 </head>
 <body>
@@ -142,8 +149,8 @@
         </div>
 
         <div class="car-selector">
-            <p>SELECT CAR</p>
-            <div class="car-grid">
+            <p>SELECT VEHICLE (Scroll →)</p>
+            <div class="car-scroll-container">
                 <div class="car-option active" data-car="car1">
                     <div class="car-mask" style="-webkit-mask-image: url('car1.png'); mask-image: url('car1.png');"></div>
                 </div>
@@ -156,10 +163,10 @@
                 <div class="car-option" data-car="car4">
                     <div class="car-mask" style="-webkit-mask-image: url('car4.png'); mask-image: url('car4.png');"></div>
                 </div>
-            </div>
+                </div>
         </div>
 
-        <button id="start-btn" class="btn-start">START</button>
+        <button id="start-btn" class="btn-start">START ENGINE</button>
     </div>
 
     <div id="control-ui">
@@ -183,14 +190,16 @@
 
     // 初始化顏色選擇器
     const colorPicker = new iro.ColorPicker("#iro-picker", {
-        width: 170, color: selectedColor,
+        width: 160, color: selectedColor,
         layout: [{ component: iro.ui.Wheel }, { component: iro.ui.Slider, options: { sliderType: 'value' } }]
     });
 
-    // 修正：隨機顏色按鈕
+    // 🟢 強制修正：隨機按鈕點擊
     document.getElementById('random-btn').addEventListener('click', () => {
-        // 使用 iro.js 內建方法設置隨機顏色，這會自動觸發 'color:change'
-        colorPicker.color.set(iro.Color.random());
+        // 先產生隨機顏色
+        const randomHex = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        // 直接對 colorPicker 的屬性賦值，這會強制同步 UI 指針
+        colorPicker.color.hexString = randomHex;
     });
 
     // 顏色變化監聽
@@ -198,11 +207,9 @@
         selectedColor = color.hexString;
         document.getElementById('hex-label').innerText = selectedColor.toUpperCase();
         
-        // 更新網格中的所有車輛遮罩背景色
+        // 更新所有車輛遮罩顏色
         const masks = document.querySelectorAll('.car-mask');
-        masks.forEach(m => {
-            m.style.backgroundColor = selectedColor;
-        });
+        masks.forEach(m => m.style.backgroundColor = selectedColor);
     });
 
     // 車輛選擇
@@ -254,15 +261,8 @@
         let angle = Math.max(-45, Math.min(45, Math.round(event.gamma)));
         const steering = Math.abs(angle) < 3 ? 0 : angle;
 
-        document.getElementById('steering-wheel').style.transform = `rotate(${angle * 1.5}deg)`;
+        document.getElementById('steering-wheel').style.transform = `rotate(${angle * 1.2}deg)`;
         document.getElementById('angle-display').innerText = `${steering}°`;
-
-        const container = document.getElementById('game-container');
-        if (Math.abs(steering) >= 40) {
-            container.classList.add('warning-active');
-        } else {
-            container.classList.remove('warning-active');
-        }
 
         let now = Date.now();
         if (now - lastSendTime > 100) {
