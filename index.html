@@ -10,6 +10,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         :root { --bg: #0f0f0f; --accent: #007bff; --card-bg: rgba(255,255,255,0.05); }
+
+        * {
+            -webkit-user-select: none; /* 防止文字選取 */
+            -webkit-touch-callout: none; /* 防止長按彈出選單 */
+        }
         
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -46,6 +51,7 @@
             width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #333; 
             font-size: 1rem; text-align: center; background: #1e1e1e; color: white;
             box-sizing: border-box; outline: none;
+            -webkit-user-select: auto !important;
         }
 
         #picker-wrapper {
@@ -258,16 +264,28 @@
 
     function handleMotion(event) {
         if (event.gamma === null) return;
-        let angle = Math.max(-45, Math.min(45, Math.round(event.gamma)));
+
+        // 取得左右傾斜值
+        let rawAngle = event.gamma; 
+        
+        // 限制在 -45 到 45 度之間
+        let angle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
+        
+        // 設定死區，防止手抖造成微小位移
         const steering = Math.abs(angle) < 3 ? 0 : angle;
 
-        document.getElementById('steering-wheel').style.transform = `rotate(${angle * 1.2}deg)`;
+        // 視覺回饋：讓方向盤轉動幅度比手機傾斜稍大一點（例如 1.5 倍），視覺感會更靈敏
+        document.getElementById('steering-wheel').style.transform = `rotate(${angle * 1.5}deg)`;
         document.getElementById('angle-display').innerText = `${steering}°`;
 
         let now = Date.now();
-        if (now - lastSendTime > 100) {
+        // 提高到 60ms 發送一次，操作會更絲滑
+        if (now - lastSendTime > 60) {
             socket.emit('steering-data', {
-                name: playerName, color: selectedColor, angle: steering,
+                name: playerName,
+                color: selectedColor,
+                angle: steering,
+                // 判定轉向力道
                 speedType: Math.abs(steering) > 35 ? 2 : (Math.abs(steering) > 5 ? 1 : 0),
                 carType: selectedCar
             });
