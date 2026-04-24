@@ -174,7 +174,7 @@
                 </div>
                 <div class="stat-box">
                     <span class="stat-label">得分</span>
-                    <span id="live-score" class="stat-value">0</span>
+                    <span id="live-score" class="stat-value">--</span>
                 </div>
                 <div class="stat-box">
                     <span class="stat-label">時間</span>
@@ -240,6 +240,7 @@
     });
 
     socket.on('personal-result', (data) => {
+        console.log("收到即時數據:", data);
         if (data.rank) document.getElementById('live-rank').innerText = `#${data.rank}`;
         if (data.score !== undefined) document.getElementById('live-score').innerText = data.score;
         if (data.timeTaken !== undefined) {
