@@ -240,7 +240,6 @@
     });
 
     socket.on('personal-result', (data) => {
-        console.log("收到即時數據:", data);
         if (data.rank) document.getElementById('live-rank').innerText = `#${data.rank}`;
         if (data.score !== undefined) document.getElementById('live-score').innerText = data.score;
         if (data.timeTaken !== undefined) {
