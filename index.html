@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>30人競技控制器</title>
+    <title>CLP 問答競速: 食物碳排放對決</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         :root { --bg: #0f0f0f; --accent: #007bff; --card-bg: rgba(255,255,255,0.05); }
 
         * {
-            -webkit-user-select: none; /* 防止文字選取 */
-            -webkit-touch-callout: none; /* 防止長按彈出選單 */
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
         }
         
         body, html {
@@ -21,6 +21,18 @@
             background-color: var(--bg); color: white;
             font-family: -apple-system, system-ui, sans-serif;
             overflow: hidden; touch-action: none;
+            transition: background-color 0.1s;
+        }
+
+        /* 🟢 背景閃爍動畫：當轉向達到極限時觸發 */
+        @keyframes background-flash {
+            0% { background-color: var(--bg); }
+            50% { background-color: #660000; } /* 閃爍暗紅色 */
+            100% { background-color: var(--bg); }
+        }
+
+        .spark-bg-active {
+            animation: background-flash 0.15s infinite linear;
         }
 
         #game-container {
@@ -37,68 +49,47 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* 主設定區面，嚴格限制寬度 */
+        /* 設置介面 */
         #setup-ui { 
             width: 100%; max-width: 320px;
-            padding: 0 20px; box-sizing: border-box;
+            padding: 0 20px;
             display: flex; flex-direction: column; 
-            align-items: center; text-align: center; gap: 15px;
+            align-items: center; text-align: center; gap: 25px;
         }
 
-        h2 { margin: 0; font-size: 1.3rem; letter-spacing: 1px; font-weight: 800; }
+        h2 { margin: 0; font-size: 1.6rem; letter-spacing: 2px; font-weight: 800; color: var(--accent); }
 
         input[type="text"] {
-            width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #333; 
-            font-size: 1rem; text-align: center; background: #1e1e1e; color: white;
-            box-sizing: border-box; outline: none;
-            -webkit-user-select: auto !important;
+            width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #333; 
+            font-size: 1.1rem; text-align: center; background: #1e1e1e; color: white;
+            outline: none;
         }
 
-        #picker-wrapper {
-            width: 100%; padding: 15px; background: var(--card-bg);
-            border-radius: 20px; box-sizing: border-box;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .color-tools {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; margin-top: 10px;
-        }
-        #hex-label { font-family: monospace; opacity: 0.6; font-size: 0.8rem; margin: 0; }
-        .btn-random {
-            background: #444; border: none; color: white; padding: 6px 12px;
-            border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer;
-        }
-
-        /* 🟢 改良：水平捲動選擇器 */
         .car-selector { 
             width: 100%; 
-            box-sizing: border-box; 
-            overflow: hidden; /* 防止父容器被撐開 */
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
         }
-        .car-selector p { font-size: 0.75rem; opacity: 0.5; margin-bottom: 5px; text-align: left; }
+        .car-selector p { font-size: 0.8rem; opacity: 0.6; margin-bottom: 12px; font-weight: bold; }
         
         .car-scroll-container {
             display: flex;
-            overflow-x: auto; /* 啟動水平滑動 */
-            gap: 12px;
-            padding: 5px 2px 10px 2px;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 10px;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
         }
-        
-        /* 隱藏捲動條 (美觀) */
         .car-scroll-container::-webkit-scrollbar { display: none; }
 
         .car-option {
-            flex: 0 0 60px; /* 固定寬度，不縮放 */
-            height: 60px;
-            background: #1a1a1a; border: 2px solid #333; border-radius: 12px;
+            flex: 0 0 70px; height: 70px;
+            background: #1a1a1a; border: 2px solid #333; border-radius: 15px;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; padding: 10px; 
-            box-sizing: border-box;
-            scroll-snap-align: start;
+            padding: 12px; scroll-snap-align: start;
         }
-        .car-option.active { border-color: var(--accent); background: rgba(0, 123, 255, 0.15); }
+        .car-option.active { border-color: var(--accent); background: rgba(0, 123, 255, 0.2); transform: scale(1.05); }
         
         .car-mask {
             width: 100%; height: 100%;
@@ -110,62 +101,37 @@
 
         .btn-start { 
             width: 100%; background: var(--accent); color: white; border: none; 
-            padding: 15px; border-radius: 50px; font-size: 1.2rem; font-weight: 800;
-            cursor: pointer;
+            padding: 18px; border-radius: 50px; font-size: 1.3rem; font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
         }
 
         /* 控制介面 */
         #control-ui { 
             display: none; width: 100%; height: 100%;
             flex-direction: column; align-items: center; justify-content: space-evenly;
-            padding: 40px 0; box-sizing: border-box;
+            padding: 30px 0;
         }
-        #active-car-display { width: 70px; height: 70px; margin-top: 5px; }
-        #name-tag {
-            font-size: 1.1rem; padding: 5px 20px; margin-top: 5px;
-        }
-
-        #wheel-wrapper { position: relative; width: 75vw; height: 75vw; max-width: 350px; }
-        #steering-wheel { width: 100%; height: 100%; object-fit: contain; }
-        #angle-display {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3rem; font-weight: 900; font-family: monospace;
-        }
-
-        /* 即時數據面板樣式 */
+        
         #live-stats {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
-            width: 90%;
+            display: flex; justify-content: center; gap: 10px;
+            margin-bottom: 15px; width: 90%;
         }
 
         .stat-box {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 8px 12px;
-            min-width: 70px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px; padding: 10px 5px; flex: 1;
+            display: flex; flex-direction: column; align-items: center;
         }
 
-        .stat-label {
-            font-size: 0.6rem;
-            color: var(--accent);
-            font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
-        }
+        .stat-label { font-size: 0.6rem; color: var(--accent); font-weight: bold; margin-bottom: 4px; }
+        .stat-value { font-size: 1.1rem; font-family: monospace; font-weight: 900; }
 
-        .stat-value {
-            font-size: 1.1rem;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: 900;
-            color: white;
-        }
+        #active-car-display { width: 75px; height: 75px; background-color: var(--accent); }
+        #name-tag { font-size: 1.2rem; padding: 5px 25px; margin-top: 10px; border-radius: 20px; background: rgba(255,255,255,0.1); }
+
+        #wheel-wrapper { position: relative; width: 75vw; height: 75vw; max-width: 320px; }
+        #steering-wheel { width: 100%; height: 100%; object-fit: contain; transition: transform 0.05s linear; }
     </style>
 </head>
 <body>
@@ -176,20 +142,11 @@
     </div>
 
     <div id="setup-ui">
-        <h2>RACE JOIN</h2>
+        <h2>CLP 問答競速: 食物碳排放對決</h2>
+        <input type="text" id="player-name" placeholder="輸入您的名稱" maxlength="8">
         
-        <input type="text" id="player-name" placeholder="您的名稱" maxlength="8">
-        
-        <div id="picker-wrapper">
-            <div id="iro-picker"></div>
-            <div class="color-tools">
-                <p id="hex-label">#FF4757</p>
-                <button id="random-btn" class="btn-random">🎲 RANDOM</button>
-            </div>
-        </div>
-
         <div class="car-selector">
-            <p>SELECT VEHICLE (Scroll →)</p>
+            <p>選擇座駕</p>
             <div class="car-scroll-container">
                 <div class="car-option active" data-car="car1">
                     <div class="car-mask" style="-webkit-mask-image: url('car1.png'); mask-image: url('car1.png');"></div>
@@ -203,26 +160,25 @@
                 <div class="car-option" data-car="car4">
                     <div class="car-mask" style="-webkit-mask-image: url('car4.png'); mask-image: url('car4.png');"></div>
                 </div>
-                </div>
+            </div>
         </div>
 
-        <button id="start-btn" class="btn-start">START ENGINE</button>
+        <button id="start-btn" class="btn-start">引擎啟動</button>
     </div>
 
     <div id="control-ui">
-       <div style="text-align:center; display: flex; flex-direction: column; align-items: center; width: 100%;">
-        
+        <div style="text-align:center; display: flex; flex-direction: column; align-items: center; width: 100%;">
             <div id="live-stats">
                 <div class="stat-box">
-                    <span class="stat-label">RANK</span>
+                    <span class="stat-label">名次</span>
                     <span id="live-rank" class="stat-value">--</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-label">SCORE</span>
+                    <span class="stat-label">積分</span>
                     <span id="live-score" class="stat-value">0</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-label">REACTION TIME</span>
+                    <span class="stat-label">時間</span>
                     <span id="live-time" class="stat-value">0s</span>
                 </div>
             </div>
@@ -233,40 +189,16 @@
         
         <div id="wheel-wrapper">
             <img id="steering-wheel" src="SteeringWheel.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2062/2062128.png'">
-            <div id="angle-display">0°</div>
         </div>
-        <div style="opacity:0.3; font-size:0.8rem;">左右傾斜手機來控制移動</div>
+        
+        <div style="opacity:0.4; font-size:0.8rem; letter-spacing:1px;">傾斜手機控制方向</div>
     </div>
 </div>
 
 <script>
     const RENDER_URL = "https://ive-diningcompetitionevent-minigame.onrender.com"; 
     const socket = io(RENDER_URL);
-    let selectedColor = "#ff4757", playerName = "", selectedCar = "car1", lastSteering = 0, lastSendTime = 0;
-
-    // 初始化顏色選擇器
-    const colorPicker = new iro.ColorPicker("#iro-picker", {
-        width: 160, color: selectedColor,
-        layout: [{ component: iro.ui.Wheel }, { component: iro.ui.Slider, options: { sliderType: 'value' } }]
-    });
-
-    // 🟢 強制修正：隨機按鈕點擊
-    document.getElementById('random-btn').addEventListener('click', () => {
-        // 先產生隨機顏色
-        const randomHex = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-        // 直接對 colorPicker 的屬性賦值，這會強制同步 UI 指針
-        colorPicker.color.hexString = randomHex;
-    });
-
-    // 顏色變化監聽
-    colorPicker.on('color:change', (color) => {
-        selectedColor = color.hexString;
-        document.getElementById('hex-label').innerText = selectedColor.toUpperCase();
-        
-        // 更新所有車輛遮罩顏色
-        const masks = document.querySelectorAll('.car-mask');
-        masks.forEach(m => m.style.backgroundColor = selectedColor);
-    });
+    let defaultColor = "#007bff", playerName = "", selectedCar = "car1", lastSendTime = 0;
 
     // 車輛選擇
     document.querySelectorAll('.car-option').forEach(opt => {
@@ -278,9 +210,8 @@
     });
 
     document.getElementById('close-btn').addEventListener('click', () => {
-        if(confirm("結束？")) {
-            window.close();
-            setTimeout(() => window.location.href = "about:blank", 300);
+        if(confirm("離開比賽？")) {
+            window.location.reload();
         }
     });
 
@@ -289,70 +220,61 @@
         if(!input) return alert("請輸入名稱");
         playerName = input;
 
+        // 請求陀螺儀權限 (iOS)
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 if (permission !== 'granted') return;
-            } catch (e) {}
+            } catch (e) { console.error(e); }
         }
 
+        // 更新 UI
         const activeIcon = document.getElementById('active-car-display');
         activeIcon.style.webkitMaskImage = `url('${selectedCar}.png')`;
         activeIcon.style.maskImage = `url('${selectedCar}.png')`;
-        activeIcon.style.backgroundColor = selectedColor;
-
-        const nameTag = document.getElementById('name-tag');
-        nameTag.innerText = playerName;
-        nameTag.style.color = selectedColor;
+        document.getElementById('name-tag').innerText = playerName;
 
         document.getElementById('setup-ui').style.display = 'none';
         document.getElementById('control-ui').style.display = 'flex'; 
 
-        socket.emit('player-join', { name: playerName, color: selectedColor, carType: selectedCar });
+        socket.emit('player-join', { name: playerName, color: defaultColor, carType: selectedCar });
         window.addEventListener('deviceorientation', handleMotion, true);
     });
 
-    // 監聽來自伺服器的個人即時/結算數據
+    // 監聽來自伺服器的個人數據
     socket.on('personal-result', (data) => {
-        // 1. 更新控制介面上方的即時數據
-        document.getElementById('live-rank').innerText = `#${data.rank}`;
-        document.getElementById('live-score').innerText = data.score;
-        document.getElementById('live-time').innerText = data.timeTaken;
-
-        // 2. 這裡可以根據需求決定：
-        // 如果這只是比賽中的即時更新，就不顯示結算畫面。
-        // 如果這是「最終成績」，則執行之前的結算畫面切換邏輯。
-        
-        // 範例：如果名次變動，讓數字閃爍一下
-        const rankEl = document.getElementById('live-rank');
-        rankEl.style.color = '#00ff00'; 
-        setTimeout(() => { rankEl.style.color = 'white'; }, 500);
+        if (data.rank) document.getElementById('live-rank').innerText = `#${data.rank}`;
+        if (data.score !== undefined) document.getElementById('live-score').innerText = data.score;
+        if (data.timeTaken !== undefined) {
+            let t = typeof data.timeTaken === 'number' ? data.timeTaken.toFixed(2) : data.timeTaken;
+            document.getElementById('live-time').innerText = t + "s";
+        }
     });
 
     function handleMotion(event) {
         if (event.gamma === null) return;
 
-        // 取得左右傾斜值
         let rawAngle = event.gamma; 
-        
-        // 限制在 -45 到 45 度之間
         let angle = Math.max(-45, Math.min(45, Math.round(rawAngle)));
-        
-        // 設定死區，防止手抖造成微小位移
         const steering = Math.abs(angle) < 3 ? 0 : angle;
 
-        // 視覺回饋：讓方向盤轉動幅度比手機傾斜稍大一點（例如 1.5 倍），視覺感會更靈敏
+        // 更新方向盤旋轉 (1.5倍旋轉感)
         document.getElementById('steering-wheel').style.transform = `rotate(${angle * 1.5}deg)`;
-        document.getElementById('angle-display').innerText = `${steering}°`;
+
+        // 🟢 背景火花閃爍特效
+        if (Math.abs(angle) > 35) {
+            document.body.classList.add('spark-bg-active');
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+        } else {
+            document.body.classList.remove('spark-bg-active');
+        }
 
         let now = Date.now();
-        // 提高到 60ms 發送一次，操作會更絲滑
         if (now - lastSendTime > 60) {
             socket.emit('steering-data', {
                 name: playerName,
-                color: selectedColor,
+                color: defaultColor,
                 angle: steering,
-                // 判定轉向力道
                 speedType: Math.abs(steering) > 35 ? 2 : (Math.abs(steering) > 5 ? 1 : 0),
                 carType: selectedCar
             });
