@@ -120,10 +120,9 @@
             flex-direction: column; align-items: center; justify-content: space-evenly;
             padding: 40px 0; box-sizing: border-box;
         }
-        #active-car-display { width: 90px; height: 90px; }
+        #active-car-display { width: 70px; height: 70px; margin-top: 5px; }
         #name-tag {
-            font-size: 1.4rem; font-weight: bold; padding: 8px 30px; border-radius: 40px;
-            background: rgba(0,0,0,0.6); border: 2px solid currentColor; margin-top: 10px;
+            font-size: 1.1rem; padding: 5px 20px; margin-top: 5px;
         }
 
         #wheel-wrapper { position: relative; width: 75vw; height: 75vw; max-width: 350px; }
@@ -131,6 +130,41 @@
         #angle-display {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 3rem; font-weight: 900; font-family: monospace;
+        }
+
+        /* 即時數據面板樣式 */
+        #live-stats {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            width: 90%;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            min-width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: var(--accent);
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 900;
+            color: white;
         }
     </style>
 </head>
@@ -176,7 +210,23 @@
     </div>
 
     <div id="control-ui">
-        <div style="text-align:center; display: flex; flex-direction: column; align-items: center;">
+       <div style="text-align:center; display: flex; flex-direction: column; align-items: center; width: 100%;">
+        
+            <div id="live-stats">
+                <div class="stat-box">
+                    <span class="stat-label">RANK</span>
+                    <span id="live-rank" class="stat-value">--</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">SCORE</span>
+                    <span id="live-score" class="stat-value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">REACTION TIME</span>
+                    <span id="live-time" class="stat-value">0s</span>
+                </div>
+            </div>
+
             <div id="active-car-display" class="car-mask"></div>
             <div id="name-tag">PLAYER</div>
         </div>
@@ -260,6 +310,23 @@
 
         socket.emit('player-join', { name: playerName, color: selectedColor, carType: selectedCar });
         window.addEventListener('deviceorientation', handleMotion, true);
+    });
+
+    // 監聽來自伺服器的個人即時/結算數據
+    socket.on('personal-result', (data) => {
+        // 1. 更新控制介面上方的即時數據
+        document.getElementById('live-rank').innerText = `#${data.rank}`;
+        document.getElementById('live-score').innerText = data.score;
+        document.getElementById('live-time').innerText = data.timeTaken;
+
+        // 2. 這裡可以根據需求決定：
+        // 如果這只是比賽中的即時更新，就不顯示結算畫面。
+        // 如果這是「最終成績」，則執行之前的結算畫面切換邏輯。
+        
+        // 範例：如果名次變動，讓數字閃爍一下
+        const rankEl = document.getElementById('live-rank');
+        rankEl.style.color = '#00ff00'; 
+        setTimeout(() => { rankEl.style.color = 'white'; }, 500);
     });
 
     function handleMotion(event) {
