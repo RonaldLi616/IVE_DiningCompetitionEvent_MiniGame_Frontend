@@ -142,7 +142,7 @@
 
     <div id="setup-ui">
         <h2>CLP 問答競速<br>食物碳排放對決</h2>
-        <input type="text" id="player-name" placeholder="輸入您的名稱" maxlength="8">
+        <input type="text" id="player-name" placeholder="輸入您的名稱" maxlength="6">
         
         <div class="car-selector">
             <p>選擇座駕 (滑動切換)</p>
@@ -217,6 +217,7 @@
     document.getElementById('start-btn').addEventListener('click', async () => {
         const input = document.getElementById('player-name').value.trim();
         if(!input) return alert("請輸入名稱");
+        if(input.length > 6) return alert("名稱最多只能 6 個字");
         playerName = input;
 
         // 陀螺儀權限
