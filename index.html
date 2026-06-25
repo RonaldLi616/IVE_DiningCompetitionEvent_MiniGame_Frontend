@@ -131,38 +131,37 @@
 
         #wheel-wrapper { 
             position: relative; 
-            /* Limits the width so the wings of the background don't overflow the screen */
-            width: 95vw; 
-            /* Maintain the exact 992x408 aspect ratio vertically */
-            height: calc(95vw * (408 / 992)); 
+            /* 1. Base the wrapper size on the steering wheel height you had originally */
+            width: 75vw; 
+            height: 75vw; 
+            max-width: 320px; 
+            max-height: 320px;
             
-            /* Set max limits so it stays compact on larger phone screens and never overlaps UI */
-            max-width: 420px;
-            max-height: calc(420px * (408 / 992));
-            
-            background-image: url('CyberDial_Background.png'); 
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
-            
-            /* Perfect center alignment for the dial */
+            /* Perfect centering alignment */
             display: flex;
             align-items: center;
             justify-content: center;
             
-            /* Prevents layout breaking */
-            margin: 0 auto;
+            /* 2. Make the background image overflow the container boundaries */
+            /* This allows the background hole to scale up bigger than the wrapper itself */
+            background-image: url('CyberDial_Background.png'); 
+            background-size: 250% auto; /* Forces the background asset to scale up extra wide */
+            background-position: center;
+            background-repeat: no-repeat;
+            
+            /* Critical: Ensures wide background wings don't create a horizontal scrollbar on mobile */
+            overflow: visible;
         }
 
         #steering-wheel { 
-            /* Using a fixed, responsive percentage makes it scale reliably */
-            /* Adjust this value down slightly if you want the background hole to appear even bigger around it */
-            height: 78%; 
-            width: auto;
+            /* 3. The wheel fills out the container layout exactly like your original size */
+            width: 90%; 
+            height: 90%; 
             object-fit: contain; 
             
-            /* Keeps gyro updates perfectly synchronized */
-            transition: transform 0.05s linear;
+            /* Keeps gyro updates completely synchronized */
+            transition: transform 0.05s linear; 
+            z-index: 2; /* Keeps the wheel layered cleanly on top */
         }
     </style>
 </head>
