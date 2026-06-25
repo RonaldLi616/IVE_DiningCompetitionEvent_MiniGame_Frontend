@@ -131,42 +131,52 @@
 
         #wheel-wrapper { 
             position: relative; 
-            /* Keeps your original container layout sizing */
-            width: 75vw; 
-            height: 75vw; 
-            max-width: 320px; 
-            max-height: 320px;
+            /* 1. Shrinks the original container bounds by 20% (from 75vw down to 60vw) */
+            width: 60vw; 
+            height: 60vw; 
+            max-width: 256px; 
+            max-height: 256px;
             
             display: flex;
             align-items: center;
             justify-content: center;
+            
+            /* Adds a little breathing room so it doesn't crowd upper stats */
+            margin: 15px auto; 
         }
 
-        /* Layer for the newly sized background image */
+        /* Layer for the cyber background HUD */
         #wheel-wrapper::before {
             content: "";
             position: absolute;
-            /* Updated to match your exact 1800x775 pixel asset dimensions */
-            width: 1800px; 
-            height: 775px;
+            
+            /* 2. Scaled down to match the phone screen width cleanly without overflowing vertically */
+            /* Maintain the correct 1800x775 aspect ratio dynamically */
+            width: 140vw; 
+            height: calc(140vw * (775 / 1800)); 
+            
+            /* Set max limits so it doesn't expand wildly on tablet/desktop views */
+            max-width: 600px;
+            max-height: calc(600px * (775 / 1800));
+            
             background-image: url('CyberDial_Background.png');
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-            pointer-events: none; /* Allows touch/tilt events to register smoothly */
+            pointer-events: none; 
             z-index: 1;
         }
 
         #steering-wheel { 
-            /* Restores your wheel to fill the original container bounds completely */
+            /* 3. Fits precisely inside the center glowing circle zone */
             width: 100%; 
             height: 100%; 
             object-fit: contain; 
             position: relative;
-            z-index: 2; /* Sits perfectly centered over the background hole zone */
+            z-index: 2; 
             
-            /* Gyro smoothing */
-            transition: transform 0.05s linear;
+            /* Smooth gyro rotation */
+            transition: transform 0.05s linear; 
         }
     </style>
 </head>
