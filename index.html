@@ -131,31 +131,37 @@
 
         #wheel-wrapper { 
             position: relative; 
-            /* Adjust width based on the aspect ratio (~2.43:1) of your background image */
-            width: 90vw; 
-            height: calc(90vw * (408 / 992)); 
-            max-width: 500px;
-            max-height: calc(500px * (408 / 992));
+            /* Limits the width so the wings of the background don't overflow the screen */
+            width: 95vw; 
+            /* Maintain the exact 992x408 aspect ratio vertically */
+            height: calc(95vw * (408 / 992)); 
             
-            /* Set up your background layout */
+            /* Set max limits so it stays compact on larger phone screens and never overlaps UI */
+            max-width: 420px;
+            max-height: calc(420px * (408 / 992));
+            
             background-image: url('CyberDial_Background.jpg'); 
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
             
-            /* Centers the wheel inside the dial zone */
+            /* Perfect center alignment for the dial */
             display: flex;
             align-items: center;
             justify-content: center;
+            
+            /* Prevents layout breaking */
+            margin: 0 auto;
         }
 
         #steering-wheel { 
-            /* This makes the inner wheel fit nicely inside the background's circular ring */
-            height: 90%; 
+            /* Using a fixed, responsive percentage makes it scale reliably */
+            /* Adjust this value down slightly if you want the background hole to appear even bigger around it */
+            height: 78%; 
             width: auto;
             object-fit: contain; 
             
-            /* Smooth out gyroscope updates while remaining snappy */
+            /* Keeps gyro updates perfectly synchronized */
             transition: transform 0.05s linear;
         }
     </style>
