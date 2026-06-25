@@ -131,28 +131,32 @@
 
         #wheel-wrapper { 
             position: relative; 
-            width: 75vw; 
-            height: 75vw; 
-            max-width: 320px; 
+            /* Adjust width based on the aspect ratio (~2.43:1) of your background image */
+            width: 90vw; 
+            height: calc(90vw * (408 / 992)); 
+            max-width: 500px;
+            max-height: calc(500px * (408 / 992));
             
-            /* 1. Add your background placeholder image here */
-            background-image: url('CyberDial_Background.png'); 
+            /* Set up your background layout */
+            background-image: url('CyberDial_Background.jpg'); 
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
             
-            /* Ensures alignment of the inner wheel */
+            /* Centers the wheel inside the dial zone */
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         #steering-wheel { 
-            /* 2. Scale the wheel down slightly so it fits perfectly inside the placeholder */
-            width: 85%; 
-            height: 85%; 
+            /* This makes the inner wheel fit nicely inside the background's circular ring */
+            height: 90%; 
+            width: auto;
             object-fit: contain; 
-            transition: transform 0.05s linear; /* Keeps the rotation feeling snappy but smooth */
+            
+            /* Smooth out gyroscope updates while remaining snappy */
+            transition: transform 0.05s linear;
         }
     </style>
 </head>
