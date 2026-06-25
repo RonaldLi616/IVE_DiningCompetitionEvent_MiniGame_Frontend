@@ -131,37 +131,42 @@
 
         #wheel-wrapper { 
             position: relative; 
-            /* 1. Base the wrapper size on the steering wheel height you had originally */
+            /* Keeps your original container layout sizing */
             width: 75vw; 
             height: 75vw; 
             max-width: 320px; 
             max-height: 320px;
             
-            /* Perfect centering alignment */
             display: flex;
             align-items: center;
             justify-content: center;
-            
-            /* 2. Make the background image overflow the container boundaries */
-            /* This allows the background hole to scale up bigger than the wrapper itself */
-            background-image: url('CyberDial_Background.png'); 
-            background-size: 250% auto; /* Forces the background asset to scale up extra wide */
+        }
+
+        /* Layer for the newly sized background image */
+        #wheel-wrapper::before {
+            content: "";
+            position: absolute;
+            /* Updated to match your exact 1800x775 pixel asset dimensions */
+            width: 1800px; 
+            height: 775px;
+            background-image: url('CyberDial_Background.png');
+            background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-            
-            /* Critical: Ensures wide background wings don't create a horizontal scrollbar on mobile */
-            overflow: visible;
+            pointer-events: none; /* Allows touch/tilt events to register smoothly */
+            z-index: 1;
         }
 
         #steering-wheel { 
-            /* 3. The wheel fills out the container layout exactly like your original size */
-            width: 90%; 
-            height: 90%; 
+            /* Restores your wheel to fill the original container bounds completely */
+            width: 100%; 
+            height: 100%; 
             object-fit: contain; 
+            position: relative;
+            z-index: 2; /* Sits perfectly centered over the background hole zone */
             
-            /* Keeps gyro updates completely synchronized */
-            transition: transform 0.05s linear; 
-            z-index: 2; /* Keeps the wheel layered cleanly on top */
+            /* Gyro smoothing */
+            transition: transform 0.05s linear;
         }
     </style>
 </head>
