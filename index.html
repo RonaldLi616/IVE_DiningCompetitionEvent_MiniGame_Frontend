@@ -75,11 +75,9 @@
         
         .car-scroll-container {
             display: flex;
-            overflow-x: auto;
-            gap: 15px;
-            padding-bottom: 10px;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
+            justify-content: space-between;
+            gap: 10px;
+            padding-bottom: 0px;
         }
         .car-scroll-container::-webkit-scrollbar { display: none; }
 
@@ -192,7 +190,7 @@
         <input type="text" id="player-name" placeholder="輸入您的名稱" maxlength="6">
         
         <div class="car-selector">
-            <p>選擇核心 (滑動切換)</p>
+            <p>選擇核心</p>
             <div class="car-scroll-container">
                 <div class="car-option active" data-car="car1">
                     <img src="car1.png" class="car-img">
