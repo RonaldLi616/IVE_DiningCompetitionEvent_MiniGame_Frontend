@@ -158,6 +158,7 @@
             max-height: calc(600px * (775 / 1800));
             
             background-image: url('CyberDial_Background.png');
+            /*background-image: url('E:/Temporary/MiniGame_Sprites/CyberDial_Background.png');*/
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
@@ -194,12 +195,15 @@
             <div class="car-scroll-container">
                 <div class="car-option active" data-car="car1">
                     <img src="car1.png" class="car-img">
+                    <!--<img src="E:/Temporary/MiniGame_Sprites/car1.png" class="car-img">-->
                 </div>
                 <div class="car-option" data-car="car2">
                     <img src="car2.png" class="car-img">
+                    <!--<img src="E:/Temporary/MiniGame_Sprites/car2.png" class="car-img">-->
                 </div>
                 <div class="car-option" data-car="car3">
                     <img src="car3.png" class="car-img">
+                    <!--<img src="E:/Temporary/MiniGame_Sprites/car3.png" class="car-img">-->
                 </div>
                 <!--<div class="car-option" data-car="car4">
                     <img src="car4.png" class="car-img">
@@ -233,6 +237,7 @@
         
         <div id="wheel-wrapper">
             <img id="steering-wheel" src="SteeringWheel.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2062/2062128.png'">
+            <!--<img id="steering-wheel" src="E:/Temporary/MiniGame_Sprites/SteeringWheel.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2062/2062128.png'"> -->
         </div>
         
         <div style="opacity:0.4; font-size:0.8rem; letter-spacing:1px;">傾斜手機控制方向</div>
@@ -275,6 +280,7 @@
 
         // 更新操控介面的車輛圖片
         document.getElementById('active-car-display').src = `${selectedCar}.png`;
+        //document.getElementById('active-car-display').src = `E:/Temporary/MiniGame_Sprites/${selectedCar}.png`;
         document.getElementById('name-tag').innerText = playerName;
 
         document.getElementById('setup-ui').style.display = 'none';
